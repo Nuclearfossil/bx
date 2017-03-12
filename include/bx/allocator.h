@@ -8,7 +8,6 @@
 
 #include "bx.h"
 
-#include <string.h> //::memmove
 #include <new>
 
 #if BX_CONFIG_ALLOCATOR_DEBUG
@@ -133,6 +132,6 @@ namespace bx
 
 } // namespace bx
 
-#include "allocator.inl"
+#include "inline/allocator.inl"
 
 #endif // BX_ALLOCATOR_H_HEADER_GUARD

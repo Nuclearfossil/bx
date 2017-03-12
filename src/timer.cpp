@@ -3,11 +3,7 @@
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
-#ifndef BX_TIMER_H_HEADER_GUARD
-#	error "Must be included from bx/timer.h!"
-#endif // BX_TIMER_H_HEADER_GUARD
-
-#include "bx.h"
+#include <bx/timer.h>
 
 #if BX_PLATFORM_ANDROID
 #	include <time.h> // clock, clock_gettime
@@ -21,7 +17,7 @@
 
 namespace bx
 {
-	inline int64_t getHPCounter()
+	int64_t getHPCounter()
 	{
 #if BX_PLATFORM_WINDOWS || BX_PLATFORM_XBOX360 || BX_PLATFORM_XBOXONE || BX_PLATFORM_WINRT
 		LARGE_INTEGER li;
@@ -35,15 +31,18 @@ namespace bx
 		int64_t i64 = now.tv_sec*INT64_C(1000000000) + now.tv_nsec;
 #elif BX_PLATFORM_EMSCRIPTEN
 		int64_t i64 = int64_t(1000.0f * emscripten_get_now() );
-#else
+#elif !BX_PLATFORM_NONE
 		struct timeval now;
 		gettimeofday(&now, 0);
 		int64_t i64 = now.tv_sec*INT64_C(1000000) + now.tv_usec;
+#else
+		BX_CHECK(false, "Not implemented!");
+		int64_t i64 = UINT64_MAX;
 #endif // BX_PLATFORM_
 		return i64;
 	}
 
-	inline int64_t getHPFrequency()
+	int64_t getHPFrequency()
 	{
 #if BX_PLATFORM_WINDOWS || BX_PLATFORM_XBOX360 || BX_PLATFORM_XBOXONE || BX_PLATFORM_WINRT
 		LARGE_INTEGER li;

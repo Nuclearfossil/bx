@@ -3,9 +3,9 @@
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
-#ifndef BX_RADIXSORT_H_HEADER_GUARD
-#	error "Must be included from bx/radixsort.h!"
-#endif // BX_RADIXSORT_H_HEADER_GUARD
+#ifndef BX_SORT_H_HEADER_GUARD
+#	error "Must be included from bx/sort.h!"
+#endif // BX_SORT_H_HEADER_GUARD
 
 namespace bx
 {
@@ -13,17 +13,17 @@ namespace bx
 #define BX_RADIXSORT_HISTOGRAM_SIZE (1<<BX_RADIXSORT_BITS)
 #define BX_RADIXSORT_BIT_MASK (BX_RADIXSORT_HISTOGRAM_SIZE-1)
 
-	inline void radixSort(uint32_t* __restrict _keys, uint32_t* __restrict _tempKeys, uint32_t _size)
+	inline void radixSort(uint32_t* _keys, uint32_t* _tempKeys, uint32_t _size)
 	{
-		uint32_t* __restrict keys = _keys;
-		uint32_t* __restrict tempKeys = _tempKeys;
+		uint32_t* keys = _keys;
+		uint32_t* tempKeys = _tempKeys;
 
 		uint32_t histogram[BX_RADIXSORT_HISTOGRAM_SIZE];
 		uint16_t shift = 0;
 		uint32_t pass = 0;
 		for (; pass < 3; ++pass)
 		{
-			memset(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
+			memSet(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
 
 			bool sorted = true;
 			{
@@ -70,24 +70,24 @@ done:
 		if (0 != (pass&1) )
 		{
 			// Odd number of passes needs to do copy to the destination.
-			memcpy(_keys, _tempKeys, _size*sizeof(uint32_t) );
+			memCopy(_keys, _tempKeys, _size*sizeof(uint32_t) );
 		}
 	}
 
 	template <typename Ty>
-	inline void radixSort(uint32_t* __restrict _keys, uint32_t* __restrict _tempKeys, Ty* __restrict _values, Ty* __restrict _tempValues, uint32_t _size)
+	inline void radixSort(uint32_t* _keys, uint32_t* _tempKeys, Ty* _values, Ty* _tempValues, uint32_t _size)
 	{
-		uint32_t* __restrict keys = _keys;
-		uint32_t* __restrict tempKeys = _tempKeys;
-		Ty* __restrict values = _values;
-		Ty* __restrict tempValues = _tempValues;
+		uint32_t* keys = _keys;
+		uint32_t* tempKeys = _tempKeys;
+		Ty* values = _values;
+		Ty* tempValues = _tempValues;
 
 		uint32_t histogram[BX_RADIXSORT_HISTOGRAM_SIZE];
 		uint16_t shift = 0;
 		uint32_t pass = 0;
 		for (; pass < 3; ++pass)
 		{
-			memset(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
+			memSet(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
 
 			bool sorted = true;
 			{
@@ -139,7 +139,7 @@ done:
 		if (0 != (pass&1) )
 		{
 			// Odd number of passes needs to do copy to the destination.
-			memcpy(_keys, _tempKeys, _size*sizeof(uint32_t) );
+			memCopy(_keys, _tempKeys, _size*sizeof(uint32_t) );
 			for (uint32_t ii = 0; ii < _size; ++ii)
 			{
 				_values[ii] = _tempValues[ii];
@@ -147,17 +147,17 @@ done:
 		}
 	}
 
-	inline void radixSort(uint64_t* __restrict _keys, uint64_t* __restrict _tempKeys, uint32_t _size)
+	inline void radixSort(uint64_t* _keys, uint64_t* _tempKeys, uint32_t _size)
 	{
-		uint64_t* __restrict keys = _keys;
-		uint64_t* __restrict tempKeys = _tempKeys;
+		uint64_t* keys = _keys;
+		uint64_t* tempKeys = _tempKeys;
 
 		uint32_t histogram[BX_RADIXSORT_HISTOGRAM_SIZE];
 		uint16_t shift = 0;
 		uint32_t pass = 0;
 		for (; pass < 6; ++pass)
 		{
-			memset(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
+			memSet(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
 
 			bool sorted = true;
 			{
@@ -204,24 +204,24 @@ done:
 		if (0 != (pass&1) )
 		{
 			// Odd number of passes needs to do copy to the destination.
-			memcpy(_keys, _tempKeys, _size*sizeof(uint64_t) );
+			memCopy(_keys, _tempKeys, _size*sizeof(uint64_t) );
 		}
 	}
 
 	template <typename Ty>
-	inline void radixSort(uint64_t* __restrict _keys, uint64_t* __restrict _tempKeys, Ty* __restrict _values, Ty* __restrict _tempValues, uint32_t _size)
+	inline void radixSort(uint64_t* _keys, uint64_t* _tempKeys, Ty* _values, Ty* _tempValues, uint32_t _size)
 	{
-		uint64_t* __restrict keys = _keys;
-		uint64_t* __restrict tempKeys = _tempKeys;
-		Ty* __restrict values = _values;
-		Ty* __restrict tempValues = _tempValues;
+		uint64_t* keys = _keys;
+		uint64_t* tempKeys = _tempKeys;
+		Ty* values = _values;
+		Ty* tempValues = _tempValues;
 
 		uint32_t histogram[BX_RADIXSORT_HISTOGRAM_SIZE];
 		uint16_t shift = 0;
 		uint32_t pass = 0;
 		for (; pass < 6; ++pass)
 		{
-			memset(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
+			memSet(histogram, 0, sizeof(uint32_t)*BX_RADIXSORT_HISTOGRAM_SIZE);
 
 			bool sorted = true;
 			{
@@ -273,7 +273,7 @@ done:
 		if (0 != (pass&1) )
 		{
 			// Odd number of passes needs to do copy to the destination.
-			memcpy(_keys, _tempKeys, _size*sizeof(uint64_t) );
+			memCopy(_keys, _tempKeys, _size*sizeof(uint64_t) );
 			for (uint32_t ii = 0; ii < _size; ++ii)
 			{
 				_values[ii] = _tempValues[ii];

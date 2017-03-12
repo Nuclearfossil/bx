@@ -21,7 +21,7 @@ extern "C" void NSLog(CFStringRef _format, ...);
 #elif 0 // BX_PLATFORM_EMSCRIPTEN
 #	include <emscripten.h>
 #else
-#	include <stdio.h>
+#	include <stdio.h> // fputs, fflush
 #endif // BX_PLATFORM_WINDOWS
 
 namespace bx
@@ -60,9 +60,11 @@ namespace bx
 #	endif // defined(__OBJC__)
 #elif 0 // BX_PLATFORM_EMSCRIPTEN
 		emscripten_log(EM_LOG_CONSOLE, "%s", _out);
-#else
+#elif !BX_CRT_NONE
 		fputs(_out, stdout);
 		fflush(stdout);
+#else
+		BX_UNUSED(_out);
 #endif // BX_PLATFORM_
 	}
 
