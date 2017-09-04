@@ -4,7 +4,7 @@
  */
 
 #include "test.h"
-#include <bx/fpumath.h>
+#include <bx/math.h>
 
 #if !BX_COMPILER_MSVC || BX_COMPILER_MSVC >= 1800
 #include <cmath>
@@ -13,12 +13,24 @@ TEST_CASE("isFinite, isInfinite, isNan", "")
 	for (uint64_t ii = 0; ii < UINT32_MAX; ii += rand()%(1<<13)+1)
 	{
 		union { uint32_t ui; float f; } u = { uint32_t(ii) };
-		REQUIRE(std::isnan(u.f) == bx::isNan(u.f) );
+		REQUIRE(std::isnan(u.f)    == bx::isNan(u.f) );
 		REQUIRE(std::isfinite(u.f) == bx::isFinite(u.f) );
-		REQUIRE(std::isinf(u.f) == bx::isInfinite(u.f) );
+		REQUIRE(std::isinf(u.f)    == bx::isInfinite(u.f) );
 	}
 }
 #endif // !BX_COMPILER_MSVC || BX_COMPILER_MSVC >= 1800
+
+
+bool flog2_test(float _a)
+{
+	return bx::flog2(_a) == bx::flog(_a) * (1.0f / bx::flog(2.0f) );
+}
+
+TEST_CASE("flog2", "")
+{
+	flog2_test(0.0f);
+	flog2_test(256.0f);
+}
 
 TEST_CASE("ToBits", "")
 {
@@ -65,9 +77,9 @@ TEST_CASE("quaternion", "")
 	bx::mtxIdentity(mtx);
 	mtxCheck(mtxQ, mtx);
 
-	float ax = bx::pi/27.0f;
-	float ay = bx::pi/13.0f;
-	float az = bx::pi/7.0f;
+	float ax = bx::kPi/27.0f;
+	float ay = bx::kPi/13.0f;
+	float az = bx::kPi/7.0f;
 
 	bx::quatRotateX(quat, ax);
 	bx::mtxQuat(mtxQ, quat);
