@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -59,7 +59,7 @@ public:
 					ascii[asciiPos] = '\0';
 					bx::writePrintf(m_writer, "\t" HEX_DUMP_FORMAT "// %s\n", hex, ascii);
 					data += asciiPos;
-					hexPos = 0;
+					hexPos   = 0;
 					asciiPos = 0;
 				}
 			}
@@ -80,7 +80,6 @@ public:
 	}
 
 	bx::WriterI* m_writer;
-	std::string m_filePath;
 	std::string m_name;
 	typedef std::vector<uint8_t> Buffer;
 	Buffer m_buffer;
@@ -97,7 +96,7 @@ void help(const char* _error = NULL)
 
 	bx::writePrintf(stdOut
 		, "bin2c, binary to C\n"
-		  "Copyright 2011-2017 Branimir Karadzic. All rights reserved.\n"
+		  "Copyright 2011-2018 Branimir Karadzic. All rights reserved.\n"
 		  "License: https://github.com/bkaradzic/bx#license-bsd-2-clause\n\n"
 		);
 

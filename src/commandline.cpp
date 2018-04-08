@@ -1,8 +1,9 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
+#include "bx_p.h"
 #include <bx/commandline.h>
 #include <bx/string.h>
 
@@ -197,7 +198,7 @@ namespace bx
 		const char* arg = findOption(_short, _long, 1);
 		if (NULL != arg)
 		{
-			_value = atoi(arg);
+			fromString(&_value, arg);
 			return true;
 		}
 
@@ -209,7 +210,7 @@ namespace bx
 		const char* arg = findOption(_short, _long, 1);
 		if (NULL != arg)
 		{
-			_value = atoi(arg);
+			fromString(&_value, arg);
 			return true;
 		}
 
@@ -221,7 +222,7 @@ namespace bx
 		const char* arg = findOption(_short, _long, 1);
 		if (NULL != arg)
 		{
-			_value = float(atof(arg));
+			fromString(&_value, arg);
 			return true;
 		}
 
@@ -233,7 +234,7 @@ namespace bx
 		const char* arg = findOption(_short, _long, 1);
 		if (NULL != arg)
 		{
-			_value = atof(arg);
+			fromString(&_value, arg);
 			return true;
 		}
 
@@ -317,6 +318,16 @@ namespace bx
 		}
 
 		return NULL;
+	}
+
+	int32_t CommandLine::getNum() const
+	{
+		return m_argc;
+	}
+
+	char const* CommandLine::get(int32_t _idx) const
+	{
+		return m_argv[_idx];
 	}
 
 } // namespace bx

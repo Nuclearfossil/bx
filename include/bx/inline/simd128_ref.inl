@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2016 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -9,20 +9,23 @@
 
 namespace bx
 {
+	BX_CONST_FUNC float sqrt(float);
+	BX_CONST_FUNC float rsqrt(float);
+
 #define ELEMx 0
 #define ELEMy 1
 #define ELEMz 2
 #define ELEMw 3
-#define BX_SIMD128_IMPLEMENT_SWIZZLE(_x, _y, _z, _w) \
-			template<> \
+#define BX_SIMD128_IMPLEMENT_SWIZZLE(_x, _y, _z, _w)                                        \
+			template<>                                                                      \
 			BX_SIMD_FORCE_INLINE simd128_ref_t simd_swiz_##_x##_y##_z##_w(simd128_ref_t _a) \
-			{ \
-				simd128_ref_t result; \
-				result.ixyzw[0] = _a.ixyzw[ELEM##_x]; \
-				result.ixyzw[1] = _a.ixyzw[ELEM##_y]; \
-				result.ixyzw[2] = _a.ixyzw[ELEM##_z]; \
-				result.ixyzw[3] = _a.ixyzw[ELEM##_w]; \
-				return result; \
+			{                                                                               \
+				simd128_ref_t result;                                                       \
+				result.ixyzw[0] = _a.ixyzw[ELEM##_x];                                       \
+				result.ixyzw[1] = _a.ixyzw[ELEM##_y];                                       \
+				result.ixyzw[2] = _a.ixyzw[ELEM##_z];                                       \
+				result.ixyzw[3] = _a.ixyzw[ELEM##_w];                                       \
+				return result;                                                              \
 			}
 
 #include "simd128_swizzle.inl"
@@ -33,27 +36,27 @@ namespace bx
 #undef ELEMy
 #undef ELEMx
 
-#define BX_SIMD128_IMPLEMENT_TEST(_xyzw, _mask) \
-			template<> \
+#define BX_SIMD128_IMPLEMENT_TEST(_xyzw, _mask)                                  \
+			template<>                                                           \
 			BX_SIMD_FORCE_INLINE bool simd_test_any_##_xyzw(simd128_ref_t _test) \
-			{ \
-				uint32_t tmp = ( (_test.uxyzw[3]>>31)<<3) \
-				             | ( (_test.uxyzw[2]>>31)<<2) \
-				             | ( (_test.uxyzw[1]>>31)<<1) \
-				             | (  _test.uxyzw[0]>>31)     \
-				             ; \
-				return 0 != (tmp&(_mask) ); \
-			} \
-			\
-			template<> \
+			{                                                                    \
+				uint32_t tmp = ( (_test.uxyzw[3]>>31)<<3)                        \
+				             | ( (_test.uxyzw[2]>>31)<<2)                        \
+				             | ( (_test.uxyzw[1]>>31)<<1)                        \
+				             | (  _test.uxyzw[0]>>31)                            \
+				             ;                                                   \
+				return 0 != (tmp&(_mask) );                                      \
+			}                                                                    \
+			                                                                     \
+			template<>                                                           \
 			BX_SIMD_FORCE_INLINE bool simd_test_all_##_xyzw(simd128_ref_t _test) \
-			{ \
-				uint32_t tmp = ( (_test.uxyzw[3]>>31)<<3) \
-				             | ( (_test.uxyzw[2]>>31)<<2) \
-				             | ( (_test.uxyzw[1]>>31)<<1) \
-				             | (  _test.uxyzw[0]>>31)     \
-				             ; \
-				return (_mask) == (tmp&(_mask) ); \
+			{                                                                    \
+				uint32_t tmp = ( (_test.uxyzw[3]>>31)<<3)                        \
+				             | ( (_test.uxyzw[2]>>31)<<2)                        \
+				             | ( (_test.uxyzw[1]>>31)<<1)                        \
+				             | (  _test.uxyzw[0]>>31)                            \
+				             ;                                                   \
+				return (_mask) == (tmp&(_mask) );                                \
 			}
 
 BX_SIMD128_IMPLEMENT_TEST(x    , 0x1);
@@ -130,7 +133,7 @@ BX_SIMD128_IMPLEMENT_TEST(xyzw , 0xf);
 	}
 
 	template<>
-	BX_SIMD_FORCE_INLINE simd128_ref_t simd_shuf_yBxA(simd128_ref_t _a, simd128_ref_t _b)
+	BX_SIMD_FORCE_INLINE simd128_ref_t simd_shuf_AxBy(simd128_ref_t _a, simd128_ref_t _b)
 	{
 		simd128_ref_t result;
 		result.uxyzw[0] = _a.uxyzw[1];
@@ -364,10 +367,10 @@ BX_SIMD128_IMPLEMENT_TEST(xyzw , 0xf);
 	BX_SIMD_FORCE_INLINE simd128_ref_t simd_sqrt(simd128_ref_t _a)
 	{
 		simd128_ref_t result;
-		result.fxyzw[0] = fsqrt(_a.fxyzw[0]);
-		result.fxyzw[1] = fsqrt(_a.fxyzw[1]);
-		result.fxyzw[2] = fsqrt(_a.fxyzw[2]);
-		result.fxyzw[3] = fsqrt(_a.fxyzw[3]);
+		result.fxyzw[0] = sqrt(_a.fxyzw[0]);
+		result.fxyzw[1] = sqrt(_a.fxyzw[1]);
+		result.fxyzw[2] = sqrt(_a.fxyzw[2]);
+		result.fxyzw[3] = sqrt(_a.fxyzw[3]);
 		return result;
 	}
 
@@ -375,10 +378,10 @@ BX_SIMD128_IMPLEMENT_TEST(xyzw , 0xf);
 	BX_SIMD_FORCE_INLINE simd128_ref_t simd_rsqrt_est(simd128_ref_t _a)
 	{
 		simd128_ref_t result;
-		result.fxyzw[0] = 1.0f / fsqrt(_a.fxyzw[0]);
-		result.fxyzw[1] = 1.0f / fsqrt(_a.fxyzw[1]);
-		result.fxyzw[2] = 1.0f / fsqrt(_a.fxyzw[2]);
-		result.fxyzw[3] = 1.0f / fsqrt(_a.fxyzw[3]);
+		result.fxyzw[0] = rsqrt(_a.fxyzw[0]);
+		result.fxyzw[1] = rsqrt(_a.fxyzw[1]);
+		result.fxyzw[2] = rsqrt(_a.fxyzw[2]);
+		result.fxyzw[3] = rsqrt(_a.fxyzw[3]);
 		return result;
 	}
 

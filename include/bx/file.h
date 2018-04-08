@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -19,6 +19,9 @@ namespace bx
 
 	///
 	WriterI* getStdErr();
+
+	///
+	WriterI* getNullOut();
 
 	///
 	class FileReader : public FileReaderI
@@ -88,7 +91,7 @@ namespace bx
 	};
 
 	///
-	bool stat(const char* _filePath, FileInfo& _fileInfo);
+	bool stat(const FilePath& _filePath, FileInfo& _outFileInfo);
 
 } // namespace bx
 

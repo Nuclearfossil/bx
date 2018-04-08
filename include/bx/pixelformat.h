@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2011-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -11,9 +11,10 @@
 
 namespace bx
 {
+	///
 	struct EncodingType
 	{
-		enum Enum
+		enum Enum ///
 		{
 			Unorm,
 			Int,

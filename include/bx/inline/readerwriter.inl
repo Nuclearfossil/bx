@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -200,10 +200,10 @@ namespace bx
 
 	inline MemoryWriter::MemoryWriter(MemoryBlockI* _memBlock)
 		: m_memBlock(_memBlock)
-		  , m_data(NULL)
-		  , m_pos(0)
-		  , m_top(0)
-		  , m_size(0)
+		, m_data(NULL)
+		, m_pos(0)
+		, m_top(0)
+		, m_size(0)
 	{
 	}
 
@@ -356,23 +356,38 @@ namespace bx
 		return result;
 	}
 
-	inline int32_t writePrintf(WriterI* _writer, const char* _format, ...)
+	inline int32_t writePrintfVargs(WriterI* _writer, const char* _format, va_list _argList)
 	{
-		va_list argList;
-		va_start(argList, _format);
+		va_list argListCopy;
+		va_copy(argListCopy, _argList);
 
 		char temp[2048];
-		char* out = temp;
+		char*   out = temp;
 		int32_t max = sizeof(temp);
-		int32_t len = vsnprintf(out, max, _format, argList);
+		int32_t len = vsnprintf(out, max, _format, argListCopy);
+
+		va_end(argListCopy);
+
 		if (len > max)
 		{
+			va_copy(argListCopy, _argList);
+
 			out = (char*)alloca(len);
-			len = vsnprintf(out, len, _format, argList);
+			len = vsnprintf(out, len, _format, argListCopy);
+
+			va_end(argListCopy);
 		}
 
 		int32_t size = write(_writer, out, len);
 
+		return size;
+	}
+
+	inline int32_t writePrintf(WriterI* _writer, const char* _format, ...)
+	{
+		va_list argList;
+		va_start(argList, _format);
+		int32_t size = writePrintfVargs(_writer, _format, argList);
 		va_end(argList);
 
 		return size;
@@ -391,9 +406,17 @@ namespace bx
 	inline int64_t getSize(SeekerI* _seeker)
 	{
 		int64_t offset = _seeker->seek();
-		int64_t size = _seeker->seek(0, Whence::End);
+		int64_t size   = _seeker->seek(0, Whence::End);
 		_seeker->seek(offset, Whence::Begin);
 		return size;
+	}
+
+	inline int64_t getRemain(SeekerI* _seeker)
+	{
+		int64_t offset = _seeker->seek();
+		int64_t size   = _seeker->seek(0, Whence::End);
+		_seeker->seek(offset, Whence::Begin);
+		return size-offset;
 	}
 
 	inline int32_t peek(ReaderSeekerI* _reader, void* _data, int32_t _size, Error* _err)

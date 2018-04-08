@@ -1,12 +1,17 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
+#include "bx_p.h"
 #include <bx/file.h>
 
-#include <stdio.h>
-#include <sys/stat.h>
+#if BX_CRT_NONE
+#	include "crt0.h"
+#else
+#	include <stdio.h>
+#	include <sys/stat.h>
+#endif // !BX_CRT_NONE
 
 #ifndef BX_CONFIG_CRT_FILE_READER_WRITER
 #	define BX_CONFIG_CRT_FILE_READER_WRITER !(0 \
@@ -16,17 +21,51 @@
 
 namespace bx
 {
+	class NoopWriterImpl : public FileWriterI
+	{
+	public:
+		NoopWriterImpl(void*)
+		{
+		}
+
+		virtual ~NoopWriterImpl()
+		{
+			close();
+		}
+
+		virtual bool open(const FilePath& _filePath, bool _append, Error* _err) override
+		{
+			BX_UNUSED(_filePath, _append, _err);
+			return false;
+		}
+
+		virtual void close() override
+		{
+		}
+
+		virtual int64_t seek(int64_t _offset, Whence::Enum _whence) override
+		{
+			BX_UNUSED(_offset, _whence);
+			return 0;
+		}
+
+		virtual int32_t write(const void* _data, int32_t _size, Error* _err) override
+		{
+			BX_UNUSED(_data, _size, _err);
+			return 0;
+		}
+	};
+
 #if BX_CONFIG_CRT_FILE_READER_WRITER
 
 #	if BX_CRT_MSVC
 #		define fseeko64 _fseeki64
 #		define ftello64 _ftelli64
-#	elif 0 \
+#	elif 0                   \
 	  || BX_PLATFORM_ANDROID \
-	  || BX_PLATFORM_BSD \
-	  || BX_PLATFORM_IOS \
-	  || BX_PLATFORM_OSX \
-	  || BX_PLATFORM_QNX
+	  || BX_PLATFORM_BSD     \
+	  || BX_PLATFORM_IOS     \
+	  || BX_PLATFORM_OSX
 #		define fseeko64 fseeko
 #		define ftello64 ftello
 #	elif BX_PLATFORM_PS4
@@ -34,7 +73,7 @@ namespace bx
 #		define ftello64 ftell
 #	endif // BX_
 
-	class FileReaderImpl : public bx::FileReaderI
+	class FileReaderImpl : public FileReaderI
 	{
 	public:
 		FileReaderImpl(FILE* _file)
@@ -114,7 +153,7 @@ namespace bx
 		bool  m_open;
 	};
 
-	class FileWriterImpl : public bx::FileWriterI
+	class FileWriterImpl : public FileWriterI
 	{
 	public:
 		FileWriterImpl(FILE* _file)
@@ -187,9 +226,199 @@ namespace bx
 		bool  m_open;
 	};
 
+	ReaderI* getStdIn()
+	{
+		static FileReaderImpl s_stdIn(stdout);
+		return &s_stdIn;
+	}
+
+	WriterI* getStdOut()
+	{
+		static FileWriterImpl s_stdOut(stdout);
+		return &s_stdOut;
+	}
+
+	WriterI* getStdErr()
+	{
+		static FileWriterImpl s_stdOut(stderr);
+		return &s_stdOut;
+	}
+
+#elif BX_CRT_NONE
+	class FileReaderImpl : public FileReaderI
+	{
+	public:
+		FileReaderImpl(void* _file)
+			: m_fd(int32_t(intptr_t(_file) ) )
+			, m_open(false)
+		{
+		}
+
+		virtual ~FileReaderImpl()
+		{
+			close();
+		}
+
+		virtual bool open(const FilePath& _filePath, Error* _err) override
+		{
+			BX_CHECK(NULL != _err, "Reader/Writer interface calling functions must handle errors.");
+
+			if (0 != m_fd)
+			{
+				BX_ERROR_SET(_err, BX_ERROR_READERWRITER_ALREADY_OPEN, "FileReader: File is already open.");
+				return false;
+			}
+
+			m_fd = crt0::open(_filePath.get(), crt0::Open::Read, 0);
+
+			if (0 >= m_fd)
+			{
+				BX_ERROR_SET(_err, BX_ERROR_READERWRITER_OPEN, "FileReader: Failed to open file.");
+				return false;
+			}
+
+			m_open = true;
+			return true;
+		}
+
+		virtual void close() override
+		{
+			if (m_open
+			&&  0 != m_fd)
+			{
+				crt0::close(m_fd);
+				m_fd = 0;
+			}
+		}
+
+		virtual int64_t seek(int64_t _offset, Whence::Enum _whence) override
+		{
+			BX_CHECK(0 != m_fd, "Reader/Writer file is not open.");
+			return crt0::seek(m_fd, _offset, crt0::Whence::Enum(_whence) );
+		}
+
+		virtual int32_t read(void* _data, int32_t _size, Error* _err) override
+		{
+			BX_CHECK(0 != m_fd, "Reader/Writer file is not open.");
+			BX_CHECK(NULL != _err, "Reader/Writer interface calling functions must handle errors.");
+
+			int32_t size = crt0::read(m_fd, _data, _size);
+			if (size != _size)
+			{
+				BX_UNUSED(_err);
+//				if (0 != feof(m_file) )
+//				{
+//					BX_ERROR_SET(_err, BX_ERROR_READERWRITER_EOF, "FileReader: EOF.");
+//				}
+//				else if (0 != ferror(m_file) )
+//				{
+//					BX_ERROR_SET(_err, BX_ERROR_READERWRITER_READ, "FileReader: read error.");
+//				}
+
+				return size >= 0 ? size : 0;
+			}
+
+			return size;
+		}
+
+	private:
+		int32_t m_fd;
+		bool    m_open;
+	};
+
+	class FileWriterImpl : public FileWriterI
+	{
+	public:
+		FileWriterImpl(void* _file)
+			: m_fd(int32_t(intptr_t(_file) ) )
+			, m_open(false)
+		{
+		}
+
+		virtual ~FileWriterImpl()
+		{
+			close();
+		}
+
+		virtual bool open(const FilePath& _filePath, bool _append, Error* _err) override
+		{
+			BX_CHECK(NULL != _err, "Reader/Writer interface calling functions must handle errors.");
+
+			if (0 != m_fd)
+			{
+				BX_ERROR_SET(_err, BX_ERROR_READERWRITER_ALREADY_OPEN, "FileReader: File is already open.");
+				return false;
+			}
+
+			m_fd = crt0::open(_filePath.get(), _append ? crt0::Open::Append : crt0::Open::Write, 0600);
+
+			if (0 >= m_fd)
+			{
+				BX_ERROR_SET(_err, BX_ERROR_READERWRITER_OPEN, "FileWriter: Failed to open file.");
+				return false;
+			}
+
+			m_open = true;
+			return true;
+		}
+
+		virtual void close() override
+		{
+			if (m_open
+			&&  0 != m_fd)
+			{
+				crt0::close(m_fd);
+				m_fd = 0;
+			}
+		}
+
+		virtual int64_t seek(int64_t _offset, Whence::Enum _whence) override
+		{
+			BX_CHECK(0 != m_fd, "Reader/Writer file is not open.");
+			return crt0::seek(m_fd, _offset, crt0::Whence::Enum(_whence) );
+		}
+
+		virtual int32_t write(const void* _data, int32_t _size, Error* _err) override
+		{
+			BX_CHECK(0 != m_fd, "Reader/Writer file is not open.");
+			BX_CHECK(NULL != _err, "Reader/Writer interface calling functions must handle errors.");
+
+			int32_t size = crt0::write(m_fd, _data, _size);
+			if (size != _size)
+			{
+				BX_ERROR_SET(_err, BX_ERROR_READERWRITER_WRITE, "FileWriter: write failed.");
+				return size >= 0 ? size : 0;
+			}
+
+			return size;
+		}
+
+	private:
+		int32_t m_fd;
+		bool    m_open;
+	};
+
+	ReaderI* getStdIn()
+	{
+		static FileReaderImpl s_stdIn( (void*)intptr_t(crt0::Io::In) );
+		return &s_stdIn;
+	}
+
+	WriterI* getStdOut()
+	{
+		static FileWriterImpl s_stdOut( (void*)intptr_t(crt0::Io::Out) );
+		return &s_stdOut;
+	}
+
+	WriterI* getStdErr()
+	{
+		static FileWriterImpl s_stdOut( (void*)intptr_t(crt0::Io::Err) );
+		return &s_stdOut;
+	}
+
 #else
 
-	class FileReaderImpl : public bx::FileReaderI
+	class FileReaderImpl : public FileReaderI
 	{
 	public:
 		FileReaderImpl(void*)
@@ -224,42 +453,33 @@ namespace bx
 		}
 	};
 
-	class FileWriterImpl : public bx::FileWriterI
+	typedef NoopWriterImpl FileWriterImpl;
+
+	ReaderI* getStdIn()
 	{
-	public:
-		FileWriterImpl(void*)
-		{
-		}
+		static FileReaderImpl s_stdIn(NULL);
+		return &s_stdIn;
+	}
 
-		virtual ~FileWriterImpl()
-		{
-			close();
-		}
+	WriterI* getStdOut()
+	{
+		static FileWriterImpl s_stdOut(NULL);
+		return &s_stdOut;
+	}
 
-		virtual bool open(const FilePath& _filePath, bool _append, Error* _err) override
-		{
-			BX_UNUSED(_filePath, _append);
-			return false;
-		}
-
-		virtual void close() override
-		{
-		}
-
-		virtual int64_t seek(int64_t _offset, Whence::Enum _whence) override
-		{
-			BX_UNUSED(_offset, _whence);
-			return 0;
-		}
-
-		virtual int32_t write(const void* _data, int32_t _size, Error* _err) override
-		{
-			BX_UNUSED(_data, _size, _err);
-			return 0;
-		}
-	};
+	WriterI* getStdErr()
+	{
+		static FileWriterImpl s_stdOut(NULL);
+		return &s_stdOut;
+	}
 
 #endif // BX_CONFIG_CRT_FILE_READER_WRITER
+
+	WriterI* getNullOut()
+	{
+		static NoopWriterImpl s_nullOut(NULL);
+		return &s_nullOut;
+	}
 
 	FileReader::FileReader()
 	{
@@ -333,32 +553,18 @@ namespace bx
 		return impl->write(_data, _size, _err);
 	}
 
-	ReaderI* getStdIn()
+	bool stat(const FilePath& _filePath, FileInfo& _outFileInfo)
 	{
-		static FileReaderImpl s_stdIn(stdout);
-		return &s_stdIn;
-	}
+#if BX_CRT_NONE
+		BX_UNUSED(_filePath, _outFileInfo);
+		return false;
+#else
+		_outFileInfo.m_size = 0;
+		_outFileInfo.m_type = FileInfo::Count;
 
-	WriterI* getStdOut()
-	{
-		static FileWriterImpl s_stdOut(stdout);
-		return &s_stdOut;
-	}
-
-	WriterI* getStdErr()
-	{
-		static FileWriterImpl s_stdOut(stderr);
-		return &s_stdOut;
-	}
-
-	bool stat(const char* _filePath, FileInfo& _fileInfo)
-	{
-		_fileInfo.m_size = 0;
-		_fileInfo.m_type = FileInfo::Count;
-
-#if BX_COMPILER_MSVC
+#	if BX_COMPILER_MSVC
 		struct ::_stat64 st;
-		int32_t result = ::_stat64(_filePath, &st);
+		int32_t result = ::_stat64(_filePath.get(), &st);
 
 		if (0 != result)
 		{
@@ -367,15 +573,15 @@ namespace bx
 
 		if (0 != (st.st_mode & _S_IFREG) )
 		{
-			_fileInfo.m_type = FileInfo::Regular;
+			_outFileInfo.m_type = FileInfo::Regular;
 		}
 		else if (0 != (st.st_mode & _S_IFDIR) )
 		{
-			_fileInfo.m_type = FileInfo::Directory;
+			_outFileInfo.m_type = FileInfo::Directory;
 		}
-#else
+#	else
 		struct ::stat st;
-		int32_t result = ::stat(_filePath, &st);
+		int32_t result = ::stat(_filePath.get(), &st);
 		if (0 != result)
 		{
 			return false;
@@ -383,17 +589,18 @@ namespace bx
 
 		if (0 != (st.st_mode & S_IFREG) )
 		{
-			_fileInfo.m_type = FileInfo::Regular;
+			_outFileInfo.m_type = FileInfo::Regular;
 		}
 		else if (0 != (st.st_mode & S_IFDIR) )
 		{
-			_fileInfo.m_type = FileInfo::Directory;
+			_outFileInfo.m_type = FileInfo::Directory;
 		}
-#endif // BX_COMPILER_MSVC
+#	endif // BX_COMPILER_MSVC
 
-		_fileInfo.m_size = st.st_size;
+		_outFileInfo.m_size = st.st_size;
 
 		return true;
+#endif // BX_CRT_NONE
 	}
 
 } // namespace bx

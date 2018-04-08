@@ -1,13 +1,17 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
+#include "bx_p.h"
 #include <bx/debug.h>
+#include <bx/file.h>
+#include <bx/math.h>
 #include <bx/sort.h>
-#include <bx/readerwriter.h>
 
 #if BX_CRT_NONE
+
+#include "crt0.h"
 
 extern "C" void* memcpy(void* _dst, const void* _src, size_t _numBytes)
 {
@@ -124,32 +128,29 @@ extern "C" int abs(int _value)
 	return _value >= 0 ? _value : -_value;
 }
 
-extern "C" float fabsf(float _value)
+extern "C" float fabsf(float _x)
 {
-	return _value >= 0.0f ? _value : -_value;
+	return bx::abs(_x);
 }
 
-extern "C" double fabs(double _value)
+extern "C" double fabs(double _x)
 {
-	return _value >= 0.0 ? _value : -_value;
+	return bx::abs(_x);
 }
 
 extern "C" double ldexp(double _x, int _exp)
 {
-	BX_UNUSED(_x, _exp);
-	return 0.0;
+	return bx::ldexp(float(_x), _exp);
 }
 
 extern "C" float expf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::exp(_x);
 }
 
 extern "C" float logf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::log(_x);
 }
 
 extern "C" float log10f(float _x)
@@ -158,117 +159,105 @@ extern "C" float log10f(float _x)
 	return 0.0f;
 }
 
-extern "C" float powf(float _x)
+extern "C" float powf(float _x, float _y)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::pow(_x, _y);
 }
 
-extern "C" double pow(double _x)
+extern "C" double pow(double _x, float _y)
 {
-	BX_UNUSED(_x);
-	return 0.0;
+	return bx::pow(_x, _y);
 }
 
 extern "C" float sinf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::sin(_x);
 }
 
 extern "C" float cosf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::cos(_x);
 }
 
 extern "C" float tanf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::tan(_x);
 }
 
 extern "C" float atan2f(float _y, float _x)
 {
-	BX_UNUSED(_y, _x);
-	return 0.0f;
+	return bx::atan2(_y, _x);
 }
 
 extern "C" float sqrtf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::sqrt(_x);
 }
 
 extern "C" double sqrt(double _x)
 {
-	BX_UNUSED(_x);
-	return 0.0;
+	return bx::sqrt(_x);
 }
 
 extern "C" float ceilf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::ceil(_x);
 }
 
 extern "C" double ceil(double _x)
 {
-	BX_UNUSED(_x);
-	return 0.0;
+	return bx::ceil(_x);
 }
 
 extern "C" float floorf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::floor(_x);
 }
 
 extern "C" double floor(double _x)
 {
-	BX_UNUSED(_x);
-	return 0.0;
+	return bx::floor(_x);
 }
 
 extern "C" float acosf(float _x)
 {
-	BX_UNUSED(_x);
-	return 0.0f;
+	return bx::acos(_x);
 }
 
 extern "C" float fmodf(float _numer, float _denom)
 {
-	BX_UNUSED(_numer, _denom);
-	return 0.0f;
+	return bx::mod(_numer, _denom);
 }
 
 extern "C" int atoi(const char* _str)
 {
-	BX_UNUSED(_str);
-	return 0;
+	int32_t result = 0;
+	bx::fromString(&result, _str);
+	return result;
 }
 
 extern "C" double atof(const char* _str)
 {
-	BX_UNUSED(_str);
-	return 0.0;
+	double result = 0.0;
+	bx::fromString(&result, _str);
+	return result;
 }
 
-extern "C" struct DIR* opendir(const char* dirname)
+extern "C" struct DIR* opendir(const char* _dirname)
 {
-	BX_UNUSED(dirname);
+	BX_UNUSED(_dirname);
 	return NULL;
 }
 
-extern "C" struct dirent* readdir(struct DIR* dirp)
+extern "C" struct dirent* readdir(struct DIR* _dirp)
 {
-	BX_UNUSED(dirp);
+	BX_UNUSED(_dirp);
 	return NULL;
 }
 
-extern "C" int closedir (struct DIR* dirp)
+extern "C" int closedir(struct DIR* _dirp)
 {
-	BX_UNUSED(dirp);
+	BX_UNUSED(_dirp);
 	return 0;
 }
 
@@ -297,9 +286,17 @@ extern "C" int snprintf(char* _out, size_t _max, const char* _format, ...)
 
 extern "C" int printf(const char* _format, ...)
 {
-	BX_UNUSED(_format);
-	return -1;
+	va_list argList;
+	va_start(argList, _format);
+	bx::WriterI* writer = bx::getStdOut();
+	int32_t len = bx::writePrintfVargs(writer, _format, argList);
+	va_end(argList);
+	return len;
 }
+
+struct FILE
+{
+};
 
 extern "C" int fprintf(FILE* _stream, const char* _format, ...)
 {
@@ -417,12 +414,12 @@ extern "C" long sysconf(int name)
 	return -1;
 }
 
-extern "C" pid_t fork()
+extern "C" pid_t fork(void)
 {
 	return -1;
 }
 
-extern "C" int sched_yield()
+extern "C" int sched_yield(void)
 {
 	return -1;
 }
@@ -436,6 +433,7 @@ extern "C" int prctl(int _option, unsigned long _arg2, unsigned long _arg3, unsi
 extern "C" int chdir(const char* _path)
 {
 	BX_UNUSED(_path);
+	bx::debugPrintf("chdir(%s) not implemented!\n", _path);
 	return -1;
 }
 
@@ -448,20 +446,25 @@ extern "C" char* getcwd(char* _buf, size_t _size)
 extern "C" char* getenv(const char* _name)
 {
 	BX_UNUSED(_name);
-	return NULL;
+	bx::debugPrintf("getenv(%s) not implemented!\n", _name);
+	return (char*)"";
 }
 
 extern "C" int setenv(const char* _name, const char* _value, int _overwrite)
 {
 	BX_UNUSED(_name, _value, _overwrite);
+	bx::debugPrintf("setenv(%s, %s, %d) not implemented!\n", _name, _value, _overwrite);
 	return -1;
 }
 
 extern "C" int unsetenv(const char* _name)
 {
 	BX_UNUSED(_name);
+	bx::debugPrintf("unsetenv(%s) not implemented!\n", _name);
 	return -1;
 }
+
+typedef int64_t time_t;
 
 extern "C" time_t time(time_t* _arg)
 {
@@ -477,25 +480,25 @@ extern "C" int gettimeofday(struct timeval* _tv, struct timezone* _tz)
 
 extern "C" void* realloc(void* _ptr, size_t _size)
 {
-	BX_UNUSED(_ptr, _size);
-	return NULL;
+	return crt0::realloc(_ptr, _size);
 }
 
 extern "C" void* malloc(size_t _size)
 {
-	return ::realloc(NULL, _size);
+	return crt0::realloc(NULL, _size);
 }
 
 extern "C" void free(void* _ptr)
 {
-	BX_UNUSED(_ptr);
+	crt0::realloc(_ptr, 0);
 }
 
 #endif // BX_PLATFORM_*
 
-extern "C" void abort()
+extern "C" void abort(void)
 {
-	while (true) {};
+	bx::debugPrintf("crtnone: abort called!\n");
+	crt0::exit(bx::kExitFailure);
 }
 
 extern "C" void __assert_fail(const char* _assertion, const char* _file, uint32_t _line, const char* _function)
@@ -510,7 +513,7 @@ void operator delete(void*)
 {
 }
 
-extern "C" void __cxa_pure_virtual()
+extern "C" void __cxa_pure_virtual(void)
 {
 }
 
@@ -520,7 +523,7 @@ extern "C" int __cxa_atexit(void (*_dtorFn)(void*), void* _arg, void* _dsoHandle
 	return 0;
 }
 
-extern "C" void __gxx_personality_v0()
+extern "C" void __gxx_personality_v0(void)
 {
 }
 
@@ -570,17 +573,17 @@ namespace __cxxabiv1
 
 	__extension__ typedef int __guard __attribute__( (mode(__DI__) ) );
 
-	extern "C" int __cxa_guard_acquire (__guard* _g)
+	extern "C" int __cxa_guard_acquire(__guard* _g)
 	{
 		return !*(char*)(_g);
 	}
 
-	extern "C" void __cxa_guard_release (__guard* _g)
+	extern "C" void __cxa_guard_release(__guard* _g)
 	{
 		*(char*)_g = 1;
 	}
 
-	extern "C" void __cxa_guard_abort (__guard* _g)
+	extern "C" void __cxa_guard_abort(__guard* _g)
 	{
 		BX_UNUSED(_g);
 	}

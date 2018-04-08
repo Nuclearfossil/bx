@@ -1,8 +1,9 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
+#include "bx_p.h"
 #include <bx/cpu.h>
 #include <bx/math.h>
 #include <bx/string.h>
@@ -223,7 +224,7 @@ namespace bx
 		uint32_t index = static_cast<uint32_t>( (k >> 3) + 1);
 		*K = -(-348 + static_cast<int32_t>(index << 3) );	// decimal exponent no need lookup table
 
-		BX_CHECK(index < sizeof(s_kCachedPowers_F) / sizeof(s_kCachedPowers_F[0]) );
+		BX_CHECK(index < sizeof(s_kCachedPowers_F) / sizeof(s_kCachedPowers_F[0]), "");
 		return DiyFp(s_kCachedPowers_F[index], s_kCachedPowers_E[index]);
 	}
 
@@ -313,7 +314,8 @@ namespace bx
 			if (p2 < delta)
 			{
 				*K += kappa;
-				GrisuRound(buffer, *len, delta, p2, one.f, wp_w.f * s_kPow10[-kappa]);
+				const int index = -static_cast<int>(kappa);
+				GrisuRound(buffer, *len, delta, p2, one.f, wp_w.f * (index < 9 ? s_kPow10[-static_cast<int>(kappa)] : 0));
 				return;
 			}
 		}
@@ -703,7 +705,15 @@ namespace bx
 #define PARSER_PINF   3  // number is higher than +HUGE_VAL
 #define PARSER_MINF   4  // number is lower than -HUGE_VAL
 
-	static int parser(const char* _s, PrepNumber* _pn)
+	inline char next(const char*& _s, const char* _term)
+	{
+		return _s != _term
+			? *_s++
+			: '\0'
+			;
+	}
+
+	static int parser(const char* _s, const char* _term, PrepNumber* _pn)
 	{
 		int state = FSM_A;
 		int digx = 0;
@@ -712,14 +722,14 @@ namespace bx
 		int expneg = 0;
 		int32_t expexp = 0;
 
-		while (state != FSM_STOP)
+		while (state != FSM_STOP) // && _s != _term)
 		{
 			switch (state)
 			{
 			case FSM_A:
 				if (isSpace(c) )
 				{
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else
 				{
@@ -732,12 +742,12 @@ namespace bx
 
 				if (c == '+')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if (c == '-')
 				{
 					_pn->negative = 1;
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if (isNumeric(c) )
 				{
@@ -754,11 +764,11 @@ namespace bx
 			case FSM_C:
 				if (c == '0')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if (c == '.')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 					state = FSM_D;
 				}
 				else
@@ -770,7 +780,7 @@ namespace bx
 			case FSM_D:
 				if (c == '0')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 					if (_pn->exponent > -2147483647) _pn->exponent--;
 				}
 				else
@@ -793,11 +803,11 @@ namespace bx
 						_pn->exponent++;
 					}
 
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if (c == '.')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 					state = FSM_F;
 				}
 				else
@@ -817,11 +827,11 @@ namespace bx
 						digx++;
 					}
 
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if ('e' == toLower(c) )
 				{
-					c = *_s++;
+					c = next(_s, _term);
 					state = FSM_G;
 				}
 				else
@@ -833,12 +843,12 @@ namespace bx
 			case FSM_G:
 				if (c == '+')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else if (c == '-')
 				{
 					expneg = 1;
-					c = *_s++;
+					c = next(_s, _term);
 				}
 
 				state = FSM_H;
@@ -847,7 +857,7 @@ namespace bx
 			case FSM_H:
 				if (c == '0')
 				{
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else
 				{
@@ -864,7 +874,7 @@ namespace bx
 						expexp += c - '0';
 					}
 
-					c = *_s++;
+					c = next(_s, _term);
 				}
 				else
 				{
@@ -1034,7 +1044,21 @@ namespace bx
 		return hd.d;
 	}
 
-	bool fromString(float* _out, const char* _str)
+	int32_t toString(char* _out, int32_t _max, bool _value)
+	{
+		StringView str(_value ? "true" : "false");
+		strCopy(_out, _max, str);
+		return str.getLength();
+	}
+
+	bool fromString(bool* _out, const StringView& _str)
+	{
+		char ch = toLower(_str.getPtr()[0]);
+		*_out = ch == 't' ||  ch == '1';
+		return 0 != _str.getLength();
+	}
+
+	bool fromString(float* _out, const StringView& _str)
 	{
 		double dbl;
 		bool result = fromString(&dbl, _str);
@@ -1042,7 +1066,7 @@ namespace bx
 		return result;
 	}
 
-	bool fromString(double* _out, const char* _str)
+	bool fromString(double* _out, const StringView& _str)
 	{
 		PrepNumber pn;
 		pn.mantissa = 0;
@@ -1052,7 +1076,7 @@ namespace bx
 		HexDouble hd;
 		hd.u = DOUBLE_PLUS_ZERO;
 
-		switch (parser(_str, &pn) )
+		switch (parser(_str.getPtr(), _str.getTerm(), &pn) )
 		{
 		case PARSER_OK:
 			*_out = converter(&pn);
@@ -1078,6 +1102,43 @@ namespace bx
 			break;
 		}
 
+		return true;
+	}
+
+	bool fromString(int32_t* _out, const StringView& _str)
+	{
+		const char* str  = _str.getPtr();
+		const char* term = _str.getTerm();
+
+		str = strws(str);
+		char ch = *str++;
+		bool neg = false;
+		switch (ch)
+		{
+		case '-':
+		case '+': neg = '-' == ch;
+			break;
+
+		default:
+			--str;
+			break;
+		}
+
+		int32_t result = 0;
+
+		for (ch = *str++; isNumeric(ch) && str <= term; ch = *str++)
+		{
+			result = 10*result - (ch - '0');
+		}
+
+		*_out = neg ? result : -result;
+
+		return true;
+	}
+
+	bool fromString(uint32_t* _out, const StringView& _str)
+	{
+		fromString( (int32_t*)_out, _str);
 		return true;
 	}
 

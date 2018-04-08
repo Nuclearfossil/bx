@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -19,14 +19,13 @@ namespace bx
 		char temp[2048];
 
 		char* out = temp;
-		int32_t len = bx::vsnprintf(out, sizeof(temp), _format, _argList);
-		if ( (int32_t)sizeof(temp) < len)
+		int32_t len = vsnprintf(out, sizeof(temp), _format, _argList);
+		if (int32_t(sizeof(temp) ) < len)
 		{
-			out = (char*)alloca(len+1);
-			len = bx::vsnprintf(out, len, _format, _argList);
+			out = (char*)alloca(len);
+			len = vsnprintf(out, len, _format, _argList);
 		}
-		out[len] = '\0';
-		_out.append(out);
+		_out.append(out, out+len);
 	}
 
 	template <typename Ty>
@@ -86,6 +85,12 @@ namespace bx
 		set(_ptr, _term);
 	}
 
+	template<typename Ty>
+	inline StringView::StringView(const Ty& _container)
+	{
+		set(_container);
+	}
+
 	inline void StringView::set(const char* _ptr, int32_t _len)
 	{
 		clear();
@@ -104,6 +109,17 @@ namespace bx
 	inline void StringView::set(const char* _ptr, const char* _term)
 	{
 		set(_ptr, int32_t(_term-_ptr) );
+	}
+
+	template<typename Ty>
+	inline void StringView::set(const Ty& _container)
+	{
+		set(_container.data(), _container.length() );
+	}
+
+	inline void StringView::set(const StringView& _str)
+	{
+		set(_str.m_ptr, _str.m_len);
 	}
 
 	inline void StringView::clear()
@@ -142,26 +158,20 @@ namespace bx
 	inline StringT<AllocatorT>::StringT(const StringT<AllocatorT>& _rhs)
 		: StringView()
 	{
-		set(_rhs.m_ptr, _rhs.m_len);
+		set(_rhs);
 	}
 
 	template<bx::AllocatorI** AllocatorT>
 	inline StringT<AllocatorT>& StringT<AllocatorT>::operator=(const StringT<AllocatorT>& _rhs)
 	{
-		set(_rhs.m_ptr, _rhs.m_len);
+		set(_rhs);
 		return *this;
-	}
-
-	template<bx::AllocatorI** AllocatorT>
-	inline StringT<AllocatorT>::StringT(const char* _ptr, int32_t _len)
-	{
-		set(_ptr, _len);
 	}
 
 	template<bx::AllocatorI** AllocatorT>
 	inline StringT<AllocatorT>::StringT(const StringView& _rhs)
 	{
-		set(_rhs.getPtr(), _rhs.getLength() );
+		set(_rhs);
 	}
 
 	template<bx::AllocatorI** AllocatorT>
@@ -171,22 +181,22 @@ namespace bx
 	}
 
 	template<bx::AllocatorI** AllocatorT>
-	inline void StringT<AllocatorT>::set(const char* _ptr, int32_t _len)
+	inline void StringT<AllocatorT>::set(const StringView& _str)
 	{
 		clear();
-		append(_ptr, _len);
+		append(_str);
 	}
 
 	template<bx::AllocatorI** AllocatorT>
-	inline void StringT<AllocatorT>::append(const char* _ptr, int32_t _len)
+	inline void StringT<AllocatorT>::append(const StringView& _str)
 	{
-		if (0 != _len)
+		if (0 != _str.getLength() )
 		{
 			int32_t old = m_len;
-			int32_t len = m_len + strLen(_ptr, _len);
+			int32_t len = m_len + strLen(_str);
 			char* ptr = (char*)BX_REALLOC(*AllocatorT, 0 != m_len ? const_cast<char*>(m_ptr) : NULL, len+1);
 			m_len = len;
-			strCopy(ptr + old, len-old+1, _ptr, _len);
+			strCopy(ptr + old, len-old+1, _str);
 
 			*const_cast<char**>(&m_ptr) = ptr;
 		}

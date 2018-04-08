@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -46,14 +46,14 @@
 
 // Platform
 #define BX_PLATFORM_ANDROID    0
-#define BX_PLATFORM_EMSCRIPTEN 0
 #define BX_PLATFORM_BSD        0
+#define BX_PLATFORM_EMSCRIPTEN 0
 #define BX_PLATFORM_HURD       0
 #define BX_PLATFORM_IOS        0
 #define BX_PLATFORM_LINUX      0
+#define BX_PLATFORM_NX         0
 #define BX_PLATFORM_OSX        0
 #define BX_PLATFORM_PS4        0
-#define BX_PLATFORM_QNX        0
 #define BX_PLATFORM_RPI        0
 #define BX_PLATFORM_STEAMLINK  0
 #define BX_PLATFORM_WINDOWS    0
@@ -200,9 +200,6 @@
 #elif defined(__ORBIS__)
 #	undef  BX_PLATFORM_PS4
 #	define BX_PLATFORM_PS4 1
-#elif defined(__QNX__)
-#	undef  BX_PLATFORM_QNX
-#	define BX_PLATFORM_QNX 1
 #elif  defined(__FreeBSD__)        \
 	|| defined(__FreeBSD_kernel__) \
 	|| defined(__NetBSD__)         \
@@ -213,6 +210,9 @@
 #elif defined(__GNU__)
 #	undef  BX_PLATFORM_HURD
 #	define BX_PLATFORM_HURD 1
+#elif defined(__NX__)
+# undef BX_PLATFORM_NX
+# define BX_PLATFORM_NX 1
 #endif //
 
 #if !BX_CRT_NONE
@@ -248,28 +248,28 @@
 
 #define BX_PLATFORM_POSIX (0      \
 		|| BX_PLATFORM_ANDROID    \
-		|| BX_PLATFORM_EMSCRIPTEN \
 		|| BX_PLATFORM_BSD        \
+		|| BX_PLATFORM_EMSCRIPTEN \
 		|| BX_PLATFORM_HURD       \
 		|| BX_PLATFORM_IOS        \
 		|| BX_PLATFORM_LINUX      \
+		|| BX_PLATFORM_NX         \
 		|| BX_PLATFORM_OSX        \
-		|| BX_PLATFORM_QNX        \
-		|| BX_PLATFORM_STEAMLINK  \
 		|| BX_PLATFORM_PS4        \
 		|| BX_PLATFORM_RPI        \
+		|| BX_PLATFORM_STEAMLINK  \
 		)
 
 #define BX_PLATFORM_NONE !(0      \
 		|| BX_PLATFORM_ANDROID    \
-		|| BX_PLATFORM_EMSCRIPTEN \
 		|| BX_PLATFORM_BSD        \
+		|| BX_PLATFORM_EMSCRIPTEN \
 		|| BX_PLATFORM_HURD       \
 		|| BX_PLATFORM_IOS        \
 		|| BX_PLATFORM_LINUX      \
+		|| BX_PLATFORM_NX         \
 		|| BX_PLATFORM_OSX        \
 		|| BX_PLATFORM_PS4        \
-		|| BX_PLATFORM_QNX        \
 		|| BX_PLATFORM_RPI        \
 		|| BX_PLATFORM_STEAMLINK  \
 		|| BX_PLATFORM_WINDOWS    \
@@ -308,25 +308,27 @@
 #if BX_PLATFORM_ANDROID
 #	define BX_PLATFORM_NAME "Android " \
 				BX_STRINGIZE(BX_PLATFORM_ANDROID)
+#elif BX_PLATFORM_BSD
+#	define BX_PLATFORM_NAME "BSD"
 #elif BX_PLATFORM_EMSCRIPTEN
 #	define BX_PLATFORM_NAME "asm.js " \
 				BX_STRINGIZE(__EMSCRIPTEN_major__) "." \
 				BX_STRINGIZE(__EMSCRIPTEN_minor__) "." \
 				BX_STRINGIZE(__EMSCRIPTEN_tiny__)
-#elif BX_PLATFORM_BSD
-#	define BX_PLATFORM_NAME "BSD"
 #elif BX_PLATFORM_HURD
 #	define BX_PLATFORM_NAME "Hurd"
 #elif BX_PLATFORM_IOS
 #	define BX_PLATFORM_NAME "iOS"
 #elif BX_PLATFORM_LINUX
 #	define BX_PLATFORM_NAME "Linux"
+#elif BX_PLATFORM_NONE
+#	define BX_PLATFORM_NAME "None"
+#elif BX_PLATFORM_NX
+#	define BX_PLATFORM_NAME "NX"
 #elif BX_PLATFORM_OSX
 #	define BX_PLATFORM_NAME "OSX"
 #elif BX_PLATFORM_PS4
 #	define BX_PLATFORM_NAME "PlayStation 4"
-#elif BX_PLATFORM_QNX
-#	define BX_PLATFORM_NAME "QNX"
 #elif BX_PLATFORM_RPI
 #	define BX_PLATFORM_NAME "RaspberryPi"
 #elif BX_PLATFORM_STEAMLINK
@@ -337,8 +339,6 @@
 #	define BX_PLATFORM_NAME "WinRT"
 #elif BX_PLATFORM_XBOXONE
 #	define BX_PLATFORM_NAME "Xbox One"
-#elif BX_PLATFORM_NONE
-#	define BX_PLATFORM_NAME "None"
 #else
 #	error "Unknown BX_PLATFORM!"
 #endif // BX_PLATFORM_

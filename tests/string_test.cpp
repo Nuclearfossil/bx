@@ -1,14 +1,33 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
 #include "test.h"
+#include <bx/filepath.h>
 #include <bx/string.h>
 #include <bx/handlealloc.h>
 #include <bx/sort.h>
+#include <string>
 
 bx::AllocatorI* g_allocator;
+
+TEST_CASE("stringPrintfTy", "")
+{
+	std::string test;
+	bx::stringPrintf(test, "printf into std::string.");
+	REQUIRE(0 == bx::strCmp(bx::StringView(test), "printf into std::string.") );
+}
+
+TEST_CASE("prettify", "")
+{
+	char tmp[1024];
+	prettify(tmp, BX_COUNTOF(tmp), 4000, bx::Units::Kilo);
+	REQUIRE(0 == bx::strCmp(tmp, "4.00 kB") );
+
+	prettify(tmp, BX_COUNTOF(tmp), 4096, bx::Units::Kibi);
+	REQUIRE(0 == bx::strCmp(tmp, "4.00 KiB") );
+}
 
 TEST_CASE("chars", "")
 {
@@ -49,6 +68,7 @@ TEST_CASE("strCopy", "")
 	REQUIRE(num == 3);
 
 	num = bx::strCopy(dst, sizeof(dst), "blah");
+	REQUIRE(0 == bx::strCmp(dst, "bl", 2) );
 	REQUIRE(0 == bx::strCmp(dst, "blah") );
 	REQUIRE(num == 4);
 }
@@ -62,10 +82,16 @@ TEST_CASE("strCat", "")
 	REQUIRE(4 == bx::strCopy(dst, 5, "copy") );
 	REQUIRE(3 == bx::strCat(dst, 8, "cat") );
 	REQUIRE(0 == bx::strCmp(dst, "copycat") );
+	REQUIRE(0 == bx::strCmp(dst, "copy", 4) );
 
 	REQUIRE(1 == bx::strCat(dst, BX_COUNTOF(dst), "------", 1) );
 	REQUIRE(3 == bx::strCat(dst, BX_COUNTOF(dst), "cat") );
 	REQUIRE(0 == bx::strCmp(dst, "copycat-cat") );
+}
+
+TEST_CASE("strCmp", "")
+{
+	REQUIRE(0 != bx::strCmp("meh", "meh/") );
 }
 
 TEST_CASE("strCmpI", "")
@@ -80,6 +106,7 @@ TEST_CASE("strCmpI", "")
 	const char* empty = "";
 	REQUIRE(0 == bx::strCmpI(abvgd, abvgd) );
 	REQUIRE(0 == bx::strCmpI(abvgd, abvgx, 4) );
+	REQUIRE(0 == bx::strCmpI(empty, empty) );
 
 	REQUIRE(0 >  bx::strCmpI(abvgd, abvgx) );
 	REQUIRE(0 >  bx::strCmpI(empty, abvgd) );
@@ -100,6 +127,7 @@ TEST_CASE("strCmpV", "")
 	const char* empty = "";
 	REQUIRE(0 == bx::strCmpV(abvgd, abvgd) );
 	REQUIRE(0 == bx::strCmpV(abvgd, abvgx, 4) );
+	REQUIRE(0 == bx::strCmpV(empty, empty) );
 
 	REQUIRE(0 >  bx::strCmpV(abvgd, abvgx) );
 	REQUIRE(0 >  bx::strCmpV(empty, abvgd) );
@@ -153,8 +181,8 @@ TEST_CASE("strCmpV sort", "")
 TEST_CASE("strRFind", "")
 {
 	const char* test = "test";
-	REQUIRE(NULL == bx::strRFind(test, 's', 0) );
-	REQUIRE(NULL == bx::strRFind(test, 's', 1) );
+	REQUIRE(NULL == bx::strRFind(bx::StringView(test, 0), 's') );
+	REQUIRE(NULL == bx::strRFind(bx::StringView(test, 1), 's') );
 	REQUIRE(&test[2] == bx::strRFind(test, 's') );
 }
 
@@ -162,9 +190,9 @@ TEST_CASE("strFindI", "")
 {
 	const char* test = "The Quick Brown Fox Jumps Over The Lazy Dog.";
 
-	REQUIRE(NULL == bx::strFindI(test, "quick", 8) );
+	REQUIRE(NULL == bx::strFindI(bx::StringView(test, 8), "quick") );
 	REQUIRE(NULL == bx::strFindI(test, "quick1") );
-	REQUIRE(&test[4] == bx::strFindI(test, "quick", 9) );
+	REQUIRE(&test[4] == bx::strFindI(bx::StringView(test, 9), "quick") );
 	REQUIRE(&test[4] == bx::strFindI(test, "quick") );
 }
 
@@ -173,23 +201,25 @@ TEST_CASE("strFind", "")
 	{
 		const char* test = "test";
 
-		REQUIRE(NULL == bx::strFind(test, 's', 0) );
-		REQUIRE(NULL == bx::strFind(test, 's', 2) );
+		REQUIRE(NULL == bx::strFind(bx::StringView(test, 0), 's') );
+		REQUIRE(NULL == bx::strFind(bx::StringView(test, 2), 's') );
 		REQUIRE(&test[2] == bx::strFind(test, 's') );
 	}
 
 	{
 		const char* test = "The Quick Brown Fox Jumps Over The Lazy Dog.";
 
-		REQUIRE(NULL == bx::strFind(test, "quick", 8) );
+		REQUIRE(NULL == bx::strFind(bx::StringView(test, 8), "quick") );
 		REQUIRE(NULL == bx::strFind(test, "quick1") );
-		REQUIRE(NULL == bx::strFind(test, "quick", 9) );
+		REQUIRE(NULL == bx::strFind(bx::StringView(test, 9), "quick") );
 		REQUIRE(NULL == bx::strFind(test, "quick") );
 
-		REQUIRE(NULL == bx::strFind(test, "Quick", 8) );
+		REQUIRE(NULL == bx::strFind(bx::StringView(test, 8), "Quick") );
 		REQUIRE(NULL == bx::strFind(test, "Quick1") );
-		REQUIRE(&test[4] == bx::strFind(test, "Quick", 9) );
+		REQUIRE(&test[4] == bx::strFind(bx::StringView(test, 9), "Quick") );
 		REQUIRE(&test[4] == bx::strFind(test, "Quick") );
+
+		REQUIRE(NULL == bx::strFind("vgd", 'a') );
 	}
 }
 
@@ -242,6 +272,9 @@ TEST_CASE("toString double", "")
 	REQUIRE(testToString(1231231.23,              "1231231.23") );
 	REQUIRE(testToString(0.000000000123123,       "1.23123e-10") );
 	REQUIRE(testToString(0.0000000001,            "1e-10") );
+	REQUIRE(testToString(-270.000000,             "-270.0") );
+	REQUIRE(testToString(2.225073858507201e-308,  "2.225073858507201e-308") );
+	REQUIRE(testToString(-79.39773355813419,      "-79.39773355813419") );
 }
 
 static bool testFromString(double _value, const char* _input)
@@ -289,6 +322,39 @@ TEST_CASE("fromString double", "")
 	REQUIRE(testFromString(1231231.23,              "1231231.23") );
 	REQUIRE(testFromString(0.000000000123123,       "1.23123e-10") );
 	REQUIRE(testFromString(0.0000000001,            "1e-10") );
+	REQUIRE(testFromString(-270.000000,             "-270.0") );
+	REQUIRE(testFromString(2.2250738585072011e-308, "2.2250738585072011e-308") );
+}
+
+static bool testFromString(int32_t _value, const char* _input)
+{
+	char tmp[1024];
+	bx::toString(tmp, BX_COUNTOF(tmp), _value);
+
+	double lhs;
+	bx::fromString(&lhs, tmp);
+
+	double rhs;
+	bx::fromString(&rhs, _input);
+
+	if (lhs == rhs)
+	{
+		return true;
+	}
+
+	printf("result '%d', input '%s'\n", _value, _input);
+	return false;
+}
+
+TEST_CASE("fromString int32_t", "")
+{
+	REQUIRE(testFromString(1389,   "1389") );
+	REQUIRE(testFromString(1389,   "  1389") );
+	REQUIRE(testFromString(1389,   "+1389") );
+	REQUIRE(testFromString(-1389,  "-1389") );
+	REQUIRE(testFromString(-1389,  " -1389") );
+	REQUIRE(testFromString(555333, "555333") );
+	REQUIRE(testFromString(-21,    "-021") );
 }
 
 TEST_CASE("StringView", "")
@@ -307,7 +373,7 @@ TEST_CASE("StringView", "")
 	st.append("test");
 	REQUIRE(8 == st.getLength() );
 
-	st.append("test", 2);
+	st.append(bx::StringView("test", 2) );
 	REQUIRE(10 == st.getLength() );
 
 	REQUIRE(0 == bx::strCmp(st.getPtr(), "testtestte") );
@@ -321,4 +387,32 @@ TEST_CASE("StringView", "")
 
 	sv.clear();
 	REQUIRE(0 == sv.getLength() );
+}
+
+TEST_CASE("Trim", "")
+{
+	REQUIRE(0 == bx::strCmp(bx::strLTrim("abvgd", "ab"), "vgd") );
+	REQUIRE(0 == bx::strCmp(bx::strLTrim("abvgd", "vagbd"), "") );
+	REQUIRE(0 == bx::strCmp(bx::strLTrim("abvgd", "vgd"), "abvgd") );
+	REQUIRE(0 == bx::strCmp(bx::strLTrim("/555333/podmac/", "/"), "555333/podmac/") );
+
+	REQUIRE(0 == bx::strCmp(bx::strRTrim("abvgd", "vagbd"), "") );
+	REQUIRE(0 == bx::strCmp(bx::strRTrim("abvgd", "abv"), "abvgd") );
+	REQUIRE(0 == bx::strCmp(bx::strRTrim("/555333/podmac/", "/"), "/555333/podmac") );
+
+	REQUIRE(0 == bx::strCmp(bx::strTrim("abvgd", "da"), "bvg") );
+	REQUIRE(0 == bx::strCmp(bx::strTrim("<1389>", "<>"), "1389") );
+	REQUIRE(0 == bx::strCmp(bx::strTrim("/555333/podmac/", "/"), "555333/podmac") );
+
+	REQUIRE(0 == bx::strCmp(bx::strTrim("abvgd", ""), "abvgd") );
+	REQUIRE(0 == bx::strCmp(bx::strTrim(" \t a b\tv g d \t ", " \t"), "a b\tv g d") );
+
+	bx::FilePath uri("/555333/podmac/");
+	REQUIRE(0 == bx::strCmp(bx::strTrim(uri.getPath(), "/"), "555333/podmac") );
+}
+
+TEST_CASE("strWord", "")
+{
+	REQUIRE(bx::strWord(" abvgd-1389.0").isEmpty() );
+	REQUIRE(0 == bx::strCmp(bx::strWord("abvgd-1389.0"), "abvgd") );
 }

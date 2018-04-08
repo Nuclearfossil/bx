@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2017 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -50,9 +50,6 @@ namespace bx
 
 	///
 	int chdir(const char* _path);
-
-	///
-	char* pwd(char* _buffer, uint32_t _size);
 
 	///
 	void* exec(const char* const* _argv);
