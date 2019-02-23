@@ -1,5 +1,5 @@
 /*
- * Copyright 2010-2018 Branimir Karadzic. All rights reserved.
+ * Copyright 2010-2019 Branimir Karadzic. All rights reserved.
  * License: https://github.com/bkaradzic/bx#license-bsd-2-clause
  */
 
@@ -8,10 +8,14 @@
 #include <bx/file.h>
 #include <bx/math.h>
 #include <bx/sort.h>
+#include <bx/timer.h>
 
 #if BX_CRT_NONE
 
 #include "crt0.h"
+
+#define NOT_IMPLEMENTED() \
+	{ bx::debugPrintf("crtnone: %s not implemented\n", BX_FUNCTION); abort(); }
 
 extern "C" void* memcpy(void* _dst, const void* _src, size_t _numBytes)
 {
@@ -71,7 +75,7 @@ extern "C" char* strcat(char* _dst, const char* _src)
 
 extern "C" const char* strchr(const char* _str, int _ch)
 {
-	return bx::strFind(_str, _ch);
+	return bx::strFind(_str, _ch).getPtr();
 }
 
 extern "C" int32_t strcmp(const char* _lhs, const char* _rhs)
@@ -84,9 +88,14 @@ extern "C" int32_t strncmp(const char* _lhs, const char* _rhs, size_t _max)
 	return bx::strCmp(_lhs, _rhs, _max);
 }
 
+extern "C" int32_t strcasecmp(const char* _lhs, const char* _rhs)
+{
+	return bx::strCmpI(_lhs, _rhs);
+}
+
 extern "C" const char* strstr(const char* _str, const char* _find)
 {
-	return bx::strFind(_str, _find);
+	return bx::strFind(_str, _find).getPtr();
 }
 
 extern "C" void qsort(void* _base, size_t _num, size_t _size, bx::ComparisonFn _fn)
@@ -100,7 +109,7 @@ extern "C" int isprint(int _ch)
 	return bx::isPrint(_ch);
 }
 
-extern "C" int toupper (int _ch)
+extern "C" int toupper(int _ch)
 {
 	return bx::toUpper(_ch);
 }
@@ -113,13 +122,16 @@ extern "C" size_t mbstowcs(wchar_t* _dst, const char* _src, size_t _max)
 
 extern "C" char* strdup(const char* _src)
 {
-	BX_UNUSED(_src);
-	return NULL;
+	uint32_t size = bx::strLen(_src)+1;
+	char* dup = (char*)malloc(size);
+	bx::strCopy(dup, size, _src);
+	return dup;
 }
 
 extern "C" long int strtol(const char* _str, char** _end, int _base)
 {
 	BX_UNUSED(_str, _end, _base);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
@@ -246,18 +258,21 @@ extern "C" double atof(const char* _str)
 extern "C" struct DIR* opendir(const char* _dirname)
 {
 	BX_UNUSED(_dirname);
+//	NOT_IMPLEMENTED();
 	return NULL;
 }
 
 extern "C" struct dirent* readdir(struct DIR* _dirp)
 {
 	BX_UNUSED(_dirp);
+	NOT_IMPLEMENTED();
 	return NULL;
 }
 
 extern "C" int closedir(struct DIR* _dirp)
 {
 	BX_UNUSED(_dirp);
+	NOT_IMPLEMENTED();
 	return 0;
 }
 
@@ -289,7 +304,8 @@ extern "C" int printf(const char* _format, ...)
 	va_list argList;
 	va_start(argList, _format);
 	bx::WriterI* writer = bx::getStdOut();
-	int32_t len = bx::writePrintfVargs(writer, _format, argList);
+	bx::Error err;
+	int32_t len = bx::write(writer, &err, _format, argList);
 	va_end(argList);
 	return len;
 }
@@ -327,106 +343,166 @@ FILE * stdout;
 extern "C" FILE* fopen(const char* _filename, const char* _mode)
 {
 	BX_UNUSED(_filename, _mode);
+	bx::debugPrintf("fopen(\"%s\", \"%s\");\n", _filename, _mode);
+//	NOT_IMPLEMENTED();
 	return NULL;
 }
 
 extern "C" int fclose(FILE* _stream)
 {
 	BX_UNUSED(_stream);
-	return -1;
+	bx::debugPrintf("fclose(%p);\n", _stream);
+//	NOT_IMPLEMENTED();
+	return 0;
 }
 
 extern "C" size_t fread(void* _ptr, size_t _size, size_t _count, FILE* _stream)
 {
 	BX_UNUSED(_ptr, _size, _count, _stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" size_t fwrite(const void* _ptr, size_t _size, size_t _count, FILE* _stream)
 {
 	BX_UNUSED(_ptr, _size, _count, _stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int fseek(FILE* _stream, long int _offset, int _origin)
 {
 	BX_UNUSED(_stream, _offset, _origin);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int fseeko64(FILE* _stream, off64_t _offset, int _whence)
 {
 	BX_UNUSED(_stream, _offset, _whence);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" long int ftell(FILE* _stream)
 {
 	BX_UNUSED(_stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" off64_t ftello64(FILE* _stream)
 {
 	BX_UNUSED(_stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int feof(FILE* _stream)
 {
 	BX_UNUSED(_stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int ferror(FILE* _stream)
 {
 	BX_UNUSED(_stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" FILE* popen(const char* _command, const char* _type)
 {
 	BX_UNUSED(_command, _type);
+	NOT_IMPLEMENTED();
 	return NULL;
 }
 
 extern "C" int pclose(FILE* _stream)
 {
 	BX_UNUSED(_stream);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int execvp(const char* _file, char* const _argv[])
 {
 	BX_UNUSED(_file, _argv);
+	NOT_IMPLEMENTED();
 	return -1;
+}
+
+typedef int32_t clockid_t;
+
+inline void toTimespecNs(timespec& _ts, int64_t _nsecs)
+{
+	_ts.tv_sec  = _nsecs/INT64_C(1000000000);
+	_ts.tv_nsec = _nsecs%INT64_C(1000000000);
+}
+
+extern "C" int clock_gettime(clockid_t _clock, struct timespec* _ts)
+{
+	BX_UNUSED(_clock);
+	int64_t now = crt0::getHPCounter();
+	toTimespecNs(*_ts, now);
+	return 0;
 }
 
 extern "C" long syscall(long _num, ...)
 {
-	BX_UNUSED(_num);
-	return -1;
+	va_list argList;
+	va_start(argList, _num);
+
+	long result = -1;
+
+	switch (_num)
+	{
+	case 39:
+		result = crt0::processGetId();
+		break;
+
+	case 228:
+		{
+			clockid_t arg0 = va_arg(argList, clockid_t);
+			timespec* arg1 = va_arg(argList, timespec*);
+			result = clock_gettime(arg0, arg1);
+		}
+		break;
+
+	default:
+		bx::debugPrintf("? syscall %d\n", _num);
+		break;
+	}
+
+	va_end(argList);
+
+	return result;
 }
 
 extern "C" long sysconf(int name)
 {
 	BX_UNUSED(name);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" pid_t fork(void)
 {
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int sched_yield(void)
 {
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
 extern "C" int prctl(int _option, unsigned long _arg2, unsigned long _arg3, unsigned long _arg4, unsigned long _arg5)
 {
 	BX_UNUSED(_option, _arg2, _arg3, _arg4, _arg5);
+	NOT_IMPLEMENTED();
 	return -1;
 }
 
@@ -440,14 +516,13 @@ extern "C" int chdir(const char* _path)
 extern "C" char* getcwd(char* _buf, size_t _size)
 {
 	BX_UNUSED(_buf, _size);
+	NOT_IMPLEMENTED();
 	return NULL;
 }
 
 extern "C" char* getenv(const char* _name)
 {
-	BX_UNUSED(_name);
-	bx::debugPrintf("getenv(%s) not implemented!\n", _name);
-	return (char*)"";
+	return const_cast<char*>(crt0::getEnv(_name) );
 }
 
 extern "C" int setenv(const char* _name, const char* _value, int _overwrite)
@@ -464,18 +539,51 @@ extern "C" int unsetenv(const char* _name)
 	return -1;
 }
 
+#if 0
+struct timeval
+{
+	time_t tv_sec;
+	suseconds_t tv_usec;
+};
+
+struct timespec
+{
+	time_t tv_sec;
+	long tv_nsec;
+};
+#endif //
+
+extern "C" int gettimeofday(struct timeval* _tv, struct timezone* _tz)
+{
+	BX_UNUSED(_tz);
+
+	timespec ts;
+
+	if (NULL == _tv)
+	{
+		return 0;
+	}
+
+	clock_gettime(0 /*CLOCK_REALTIME*/, &ts);
+	_tv->tv_sec = ts.tv_sec;
+	_tv->tv_usec = (int)ts.tv_nsec / 1000;
+	return 0;
+}
+
 typedef int64_t time_t;
 
 extern "C" time_t time(time_t* _arg)
 {
-	BX_UNUSED(_arg);
-	return -1;
-}
+	timespec ts;
+	clock_gettime(0 /*CLOCK_REALTIME*/, &ts);
+	time_t result = ts.tv_sec;
 
-extern "C" int gettimeofday(struct timeval* _tv, struct timezone* _tz)
-{
-	BX_UNUSED(_tv, _tz);
-	return -1;
+	if (NULL != _arg)
+	{
+		*_arg = result;
+	}
+
+	return result;
 }
 
 extern "C" void* realloc(void* _ptr, size_t _size)
